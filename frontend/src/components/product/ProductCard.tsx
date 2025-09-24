@@ -52,8 +52,24 @@ const ProductCard = ({
   };
 
   const handleProductClick = () => {
+    // Create a unique product identifier from title and marketplace
+    const productIdentifier = `${marketplace}-${title.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50)}`;
+    
+    // Store product data in sessionStorage for the product detail page
+    sessionStorage.setItem(`product-${productIdentifier}`, JSON.stringify({
+      id,
+      title,
+      image,
+      currentPrice,
+      originalPrice,
+      marketplace,
+      rating,
+      reviewCount,
+      product_url
+    }));
+    
     // Navigate to our internal product detail page
-    navigate(`/product/${encodeURIComponent(id)}`);
+    navigate(`/product/${encodeURIComponent(productIdentifier)}`);
   };
 
   const formatPrice = (price: number) => {
@@ -66,7 +82,7 @@ const ProductCard = ({
   return (
     <div className="card-product group cursor-pointer" onClick={handleProductClick}>
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted min-h-[200px]">
         {!imageLoaded && (
           <div className="absolute inset-0 loading-shimmer rounded-lg" />
         )}

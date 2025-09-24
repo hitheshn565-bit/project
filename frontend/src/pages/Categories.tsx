@@ -1,15 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Grid, List, TrendingUp, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ProductCard from "@/components/product/ProductCard";
+import { apiEndpoints } from "@/services/api";
 
 const Categories = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [categoryProducts, setCategoryProducts] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Mock categories data
+  // Fetch products for each category
+  useEffect(() => {
+    const fetchCategoryProducts = async () => {
+      setLoading(true);
+      const products: Record<string, any[]> = {};
+      
+      const categoryQueries = {
+        'electronics': 'laptop',
+        'fashion': 'shirt',
+        'home-garden': 'furniture',
+        'sports': 'running shoes',
+        'books': 'books',
+        'automotive': 'car accessories',
+        'health-beauty': 'skincare',
+        'toys-games': 'toys'
+      };
+      
+      try {
+        for (const [categoryId, query] of Object.entries(categoryQueries)) {
+          const response = await apiEndpoints.searchProducts(query, 6);
+          products[categoryId] = response.data.combined || [];
+        }
+        setCategoryProducts(products);
+      } catch (error) {
+        console.error('Failed to fetch category products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCategoryProducts();
+  }, []);
+
   const mainCategories = [
     {
       id: 'electronics',
@@ -17,7 +56,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 2145623,
       icon: '📱',
-      subcategories: ['Smartphones', 'Laptops', 'TVs', 'Cameras', 'Gaming']
+      subcategories: ['Smartphones', 'Laptops', 'TVs', 'Cameras', 'Gaming'],
+      query: 'laptop'
     },
     {
       id: 'fashion',
@@ -25,7 +65,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 1892445,
       icon: '👕',
-      subcategories: ['Clothing', 'Shoes', 'Accessories', 'Jewelry', 'Watches']
+      subcategories: ['Clothing', 'Shoes', 'Accessories', 'Jewelry', 'Watches'],
+      query: 'shirt'
     },
     {
       id: 'home-garden',
@@ -33,7 +74,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 891234,
       icon: '🏠',
-      subcategories: ['Furniture', 'Appliances', 'Decor', 'Kitchen', 'Garden']
+      subcategories: ['Furniture', 'Appliances', 'Decor', 'Kitchen', 'Garden'],
+      query: 'furniture'
     },
     {
       id: 'sports',
@@ -41,7 +83,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 645789,
       icon: '⚽',
-      subcategories: ['Fitness', 'Outdoor Gear', 'Sports Equipment', 'Athletic Wear']
+      subcategories: ['Fitness', 'Outdoor Gear', 'Sports Equipment', 'Athletic Wear'],
+      query: 'running shoes'
     },
     {
       id: 'books',
@@ -49,7 +92,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 1234567,
       icon: '📚',
-      subcategories: ['Books', 'Movies', 'Music', 'Games', 'Magazines']
+      subcategories: ['Books', 'Movies', 'Music', 'Games', 'Magazines'],
+      query: 'books'
     },
     {
       id: 'automotive',
@@ -57,7 +101,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 456789,
       icon: '🚗',
-      subcategories: ['Car Parts', 'Tools', 'Accessories', 'Motorcycles']
+      subcategories: ['Car Parts', 'Tools', 'Accessories', 'Motorcycles'],
+      query: 'car accessories'
     },
     {
       id: 'health-beauty',
@@ -65,7 +110,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 789123,
       icon: '💄',
-      subcategories: ['Skincare', 'Makeup', 'Health Supplements', 'Personal Care']
+      subcategories: ['Skincare', 'Makeup', 'Health Supplements', 'Personal Care'],
+      query: 'skincare'
     },
     {
       id: 'toys-games',
@@ -73,7 +119,8 @@ const Categories = () => {
       image: '/placeholder.svg',
       productCount: 345678,
       icon: '🎮',
-      subcategories: ['Video Games', 'Board Games', 'Toys', 'Collectibles']
+      subcategories: ['Video Games', 'Board Games', 'Toys', 'Collectibles'],
+      query: 'toys'
     }
   ];
 
@@ -186,6 +233,7 @@ const Categories = () => {
                 <Button 
                   variant="outline" 
                   className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                  onClick={() => navigate(`/search?q=${encodeURIComponent(category.query || category.name.toLowerCase())}`)}
                 >
                   Browse {category.name}
                 </Button>
@@ -220,25 +268,48 @@ const Categories = () => {
                 </Button>
               </div>
 
-              {/* Mock popular products in category */}
+              {/* Real popular products in category */}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="card-product text-center group cursor-pointer">
-                    <div className="aspect-square bg-muted rounded-lg mb-3 overflow-hidden">
-                      <img
-                        src="/placeholder.svg"
-                        alt={`Popular ${category.name} item ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
+                {loading ? (
+                  [...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-square bg-muted rounded-lg mb-3"></div>
+                      <div className="h-4 bg-muted rounded mb-2"></div>
+                      <div className="h-3 bg-muted rounded w-2/3"></div>
                     </div>
-                    <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                      Popular {category.name} Item {i + 1}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      From $99.99
-                    </p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  categoryProducts[category.id]?.slice(0, 6).map((product, i) => (
+                    <ProductCard
+                      key={i}
+                      id={product.product_url || `${category.id}-${i}`}
+                      title={product.title}
+                      image={product.image_url || '/placeholder.svg'}
+                      currentPrice={parseFloat(product.price) || 0}
+                      originalPrice={product.original_price ? parseFloat(product.original_price) : undefined}
+                      marketplace={product.marketplace}
+                      rating={parseFloat(product.rating) || 4.5}
+                      reviewCount={parseInt(product.reviews_count) || 0}
+                      product_url={product.product_url}
+                    />
+                  )) || [...Array(6)].map((_, i) => (
+                    <div key={i} className="card-product text-center group cursor-pointer">
+                      <div className="aspect-square bg-muted rounded-lg mb-3 overflow-hidden">
+                        <img
+                          src="/placeholder.svg"
+                          alt={`Popular ${category.name} item ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                        Popular {category.name} Item {i + 1}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        From ₹999
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           ))}

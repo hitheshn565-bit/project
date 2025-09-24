@@ -36,6 +36,39 @@ const ProductDetail = () => {
         setLoading(true);
         setError(null);
         
+        // First try to get product from sessionStorage (for clicked products)
+        const storedProduct = sessionStorage.getItem(`product-${id}`);
+        if (storedProduct) {
+          const productData = JSON.parse(storedProduct);
+          const transformedProduct = {
+            id: productData.id,
+            title: productData.title,
+            brand: productData.title?.split(' ')[0] || 'Unknown',
+            category: 'Electronics > General',
+            image: productData.image || '/placeholder.svg',
+            images: [productData.image || '/placeholder.svg'],
+            currentPrice: productData.currentPrice || 0,
+            originalPrice: productData.originalPrice,
+            rating: productData.rating || 4.5,
+            reviewCount: productData.reviewCount || 0,
+            description: `${productData.title} - Available on ${productData.marketplace}`,
+            specifications: {
+              'Marketplace': productData.marketplace,
+              'Product URL': productData.product_url || 'N/A',
+              'Rating': productData.rating || 'N/A',
+              'Reviews': productData.reviewCount || 'N/A'
+            },
+            condition: 'New',
+            marketplace: productData.marketplace,
+            product_url: productData.product_url
+          };
+          
+          setProduct(transformedProduct);
+          setLoading(false);
+          return;
+        }
+        
+        // Fallback: try to fetch from API (for direct URL access)
         const response = await apiEndpoints.getProduct(id);
         
         if (response.data) {
@@ -496,7 +529,7 @@ const ProductDetail = () => {
                       {Object.entries(product.specifications).map(([key, value]) => (
                         <TableRow key={key}>
                           <TableCell className="font-medium">{key}</TableCell>
-                          <TableCell>{value}</TableCell>
+                          <TableCell>{String(value)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -531,7 +564,7 @@ const ProductDetail = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => [formatPrice(Number(value)), 'Price']} />
+                    <Tooltip formatter={(value: any) => [formatPrice(Number(value)), 'Price'] as [string, string]} />
                     <Line 
                       type="monotone" 
                       dataKey="price" 

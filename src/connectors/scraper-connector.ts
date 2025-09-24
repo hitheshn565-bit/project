@@ -15,17 +15,22 @@ export interface ScrapedProduct {
 }
 
 // Currency conversion utility (approximate rates)
-const convertToINR = (price: string, fromCurrency: 'USD' | 'INR' = 'USD'): string => {
+const convertToINR = (price: string, fromCurrency: 'USD' | 'INR' = 'USD', marketplace: string = ''): string => {
   if (!price) return '0';
   
   // Extract numeric value
   const numericPrice = parseFloat(price.replace(/[^\d.]/g, ''));
   if (isNaN(numericPrice)) return price;
   
+  // Myntra is always in INR, no conversion needed
+  if (marketplace.toLowerCase() === 'myntra') {
+    return numericPrice.toString();
+  }
+  
   if (fromCurrency === 'USD') {
-    // Only convert if the price seems to be in USD (typically < 1000 for most products)
-    // If price is already high (> 5000), it's likely already in INR
-    if (numericPrice > 5000) {
+    // Amazon India products: Only convert if price seems to be in USD (typically < 2000 for most products)
+    // If price is already high (> 2000), it's likely already in INR
+    if (numericPrice > 2000) {
       return numericPrice.toString(); // Already in INR
     }
     // Convert USD to INR (approximate rate: 1 USD = 83 INR)
@@ -85,14 +90,14 @@ export async function searchAmazonProducts(query: string, limit: number = 20): P
     // Transform the response to match our interface
     // The scraper returns an array directly, not wrapped in a products field
     const rawProducts = Array.isArray(response.data) ? response.data : (response.data.products || []);
-    const products: ScrapedProduct[] = rawProducts.map((product: any) => ({
-      title: product.title || product.name,
-      price: convertToINR(product.price, 'USD'), // Convert Amazon USD prices to INR
-      original_price: product.original_price ? convertToINR(product.original_price, 'USD') : undefined,
-      image_url: product.image_url || product.image,
-      product_url: product.product_url || product.url,
-      rating: parseRating(product.rating).toString(),
-      reviews_count: parseReviewsCount(product.reviews_count || product.reviews).toString(),
+    const products: ScrapedProduct[] = rawProducts.map((item: any) => ({
+      title: item.title || item.name,
+      price: convertToINR(item.price, 'USD', 'Amazon'),
+      original_price: item.original_price ? convertToINR(item.original_price, 'USD', 'Amazon') : undefined,
+      image_url: item.image_url || item.image,
+      product_url: item.product_url || item.url,
+      rating: parseRating(item.rating).toString(),
+      reviews_count: parseReviewsCount(item.reviews_count || item.reviews).toString(),
       marketplace: 'Amazon' as const
     }));
 
@@ -133,8 +138,8 @@ export async function searchMyntraProducts(query: string, limit: number = 20): P
     const rawProducts = Array.isArray(response.data) ? response.data : (response.data.products || []);
     const products: ScrapedProduct[] = rawProducts.map((product: any) => ({
       title: product.title || product.name,
-      price: convertToINR(product.price, 'INR'), // Myntra prices are already in INR
-      original_price: product.original_price ? convertToINR(product.original_price, 'INR') : undefined,
+      price: convertToINR(product.price, 'INR', 'Myntra'), // Myntra prices are already in INR
+      original_price: product.original_price ? convertToINR(product.original_price, 'INR', 'Myntra') : undefined,
       image_url: product.image_url || product.image,
       product_url: product.product_url || product.url,
       rating: parseRating(product.rating).toString(),
